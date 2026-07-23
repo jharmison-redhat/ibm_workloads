@@ -99,9 +99,14 @@
 
 # Skip state refresh to avoid lock issues - Terraform will handle state automatically
 
+- name: Get timestamp for log files
+  ansible.builtin.command: date +%s
+  register: timestamp_result
+  changed_when: false
+
 - name: Set timestamp for log files
   ansible.builtin.set_fact:
-    terraform_log_timestamp: "{{ ansible_date_time.epoch }}"
+    terraform_log_timestamp: "{{ timestamp_result.stdout }}"
 
 - name: Execute Terraform deployment with error handling
   block:
