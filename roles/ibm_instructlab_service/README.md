@@ -64,7 +64,6 @@ This role uses a pre-provisioned **IBM Cloud API key + existing resource group**
 | `ibmcloud_storage_class` | `standard` | Storage class for COS resources |
 | `ibmcloud_instructlab_instance_service` | `instructlab` | InstructLab service name |
 | `ibmcloud_instructlab_instance_plan` | `instructlab-pricing-plan` | Service plan for InstructLab |
-| `ibmcloud_instructlab_authorization_link` | `""` | Optional informational link surfaced alongside the project URL |
 
 ## Resource Naming
 

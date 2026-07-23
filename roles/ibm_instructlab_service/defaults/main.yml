@@ -14,7 +14,3 @@ ibmcloud_storage_class: standard
 # InstructLab Service Configuration
 ibmcloud_instructlab_instance_service: "instructlab"
 ibmcloud_instructlab_instance_plan: "instructlab-pricing-plan"
-
-# Optional link surfaced alongside the InstructLab project URL, e.g. a
-# document explaining how to authenticate against the resource group.
-ibmcloud_instructlab_authorization_link: ""

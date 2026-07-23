@@ -174,11 +174,10 @@
     msg:
       - "IBM InstructLab Service is ready (GUID: {{ guid }})"
       - "Resource Group: {{ ibmcloud_resource_group_name }}"
-      - "Project link: {{ r_terraform_output.outputs.instructlab_direct_url.value }}"
-      - "Authorization link: {{ ibmcloud_instructlab_authorization_link }}"
+      - "Project Id: {{ r_terraform_output.outputs.instructlab_instance_guid.value }}"
 
 - name: Set facts with deployment outputs for downstream consumption
   ansible.builtin.set_fact:
-    ibmcloud_instructlab_project_link: "{{ r_terraform_output.outputs.instructlab_direct_url.value }}"
+    ibmcloud_instructlab_project_id: "{{ r_terraform_output.outputs.instructlab_instance_guid.value }}"
     ibmcloud_instructlab_cos_instance_id: "{{ r_terraform_output.outputs.cos_instance_id.value }}"
     ibmcloud_instructlab_cos_bucket_name: "{{ r_terraform_output.outputs.cos_bucket_name.value }}"
