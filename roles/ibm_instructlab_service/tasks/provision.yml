@@ -169,12 +169,12 @@
              else ('Resource group not found/accessible' if has_missing_resource_group
              else 'Deployment failure') }}. Logs: {{ output_dir }}/terraform_deploy_{{ terraform_log_timestamp }}.log
 
-- name: Record link when actions complete
-  ansible.builtin.debug:
-    msg:
-      - "IBM InstructLab Service is ready (GUID: {{ guid }})"
-      - "Resource Group: {{ ibmcloud_resource_group_name }}"
-      - "Project Id: {{ r_terraform_output.outputs.instructlab_instance_guid.value }}"
+- name: Record project id
+  agnosticd.core.agnosticd_user_info:
+    data:
+      ibmcloud_instructlab_project_id: "{{ r_terraform_output.outputs.instructlab_instance_guid.value }}"
+      ibmcloud_instructlab_cos_instance_id: "{{ r_terraform_output.outputs.cos_instance_id.value }}"
+      ibmcloud_instructlab_cos_bucket_name: "{{ r_terraform_output.outputs.cos_bucket_name.value }}"
 
 - name: Set facts with deployment outputs for downstream consumption
   ansible.builtin.set_fact:
