@@ -1,5 +1,4 @@
 ---
-
 - name: Include destroy tasks
   ansible.builtin.include_tasks:
     file: destroy.yml

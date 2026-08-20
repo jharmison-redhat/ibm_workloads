@@ -1,0 +1,24 @@
+---
+galaxy_info:
+  role_name: ibm_rhaii_service
+  author:
+    - Alberto Gonzalez
+    - James Harmison
+  description: Deploy IBM RHAII service with associated IBM Cloud IAM resources using Terraform
+  company: Red Hat
+
+  issue_tracker_url: https://github.com/rhpds/ibm_workloads/issues
+
+  license: Apache-2.0
+
+  min_ansible_version: "2.12"
+
+  platforms: []
+
+  galaxy_tags:
+    - ibm
+    - rhaii
+    - terraform
+
+dependencies:
+  - role: rhpds.ibm_workloads.terraform_setup

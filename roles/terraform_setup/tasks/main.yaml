@@ -1,0 +1,63 @@
+---
+- name: Set up environment variables safely
+  ansible.builtin.set_fact:
+    user_home: "{{ ansible_env.HOME | default(lookup('env', 'HOME')) }}"
+    user_path: "{{ ansible_env.PATH | default(lookup('env', 'PATH')) }}"
+
+- name: Check if Terraform is installed
+  ansible.builtin.command: terraform version
+  register: terraform_check
+  failed_when: false
+  changed_when: false
+
+- name: Debug terraform check result
+  ansible.builtin.debug:
+    msg: "Terraform check result: rc={{ terraform_check.rc }}, PATH={{ user_path }}"
+
+- name: Install Terraform if needed
+  when: terraform_check.rc != 0
+  block:
+    - name: Create local bin directory for Terraform
+      ansible.builtin.file:
+        path: "{{ user_home }}/.local/bin"
+        state: directory
+        mode: "0755"
+
+    - name: Download Terraform
+      ansible.builtin.get_url:
+        url: "https://releases.hashicorp.com/terraform/{{ ibmcloud_terraform_version }}/terraform_{{ ibmcloud_terraform_version }}_linux_amd64.zip"
+        dest: "/tmp/terraform.zip"
+        mode: "0644"
+
+    - name: Check if unzip is available
+      ansible.builtin.command: which unzip
+      register: unzip_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install unzip if available and needed
+      ansible.builtin.package:
+        name: unzip
+        state: present
+      become: false
+      when: unzip_check.rc != 0
+      ignore_errors: true
+
+    - name: Extract Terraform to user local bin
+      ansible.builtin.unarchive:
+        src: "/tmp/terraform.zip"
+        dest: "{{ user_home }}/.local/bin"
+        remote_src: true
+        mode: "0755"
+
+    - name: Add local bin to PATH for this session
+      ansible.builtin.set_fact:
+        user_path: "{{ user_home }}/.local/bin:{{ user_path }}"
+
+    - name: Verify Terraform installation works
+      ansible.builtin.command: "{{ user_home }}/.local/bin/terraform version"
+      changed_when: false
+
+- name: Ensure PATH includes local bin directory
+  ansible.builtin.set_fact:
+    user_path: "{{ user_home }}/.local/bin:{{ user_path }}"

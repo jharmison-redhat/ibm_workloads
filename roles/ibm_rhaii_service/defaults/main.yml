@@ -1,0 +1,9 @@
+---
+# Terraform Configuration
+ibmcloud_terraform_dir: "{{ output_dir }}"
+ibmcloud_provider_version: "1.80.4"
+ibmcloud_terraform_name_prefix: "rhaii"
+
+# RHAII Service Configuration
+ibmcloud_rhaii_instance_service: "instructlab"
+ibmcloud_rhaii_instance_plan: "instructlab-pricing-plan"

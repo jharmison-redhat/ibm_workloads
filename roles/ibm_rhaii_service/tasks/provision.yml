@@ -1,0 +1,106 @@
+---
+- name: Validate required variables for deployment
+  ansible.builtin.assert:
+    that:
+      - ibmcloud_api_key is defined
+      - ibmcloud_api_key | length > 0
+      - ibmcloud_resource_group_name is defined
+      - ibmcloud_resource_group_name | length > 0
+      - requester_email is defined
+      - requester_email | length > 0
+      - guid is defined
+      - guid | length > 0
+    fail_msg: |
+      🚫 Missing required variables for deployment:
+      - ibmcloud_api_key: {{ 'defined' if ibmcloud_api_key is defined else 'MISSING' }}
+      - ibmcloud_resource_group_name: {{ 'defined' if ibmcloud_resource_group_name is defined else 'MISSING' }}
+      - requester_email: {{ 'defined' if requester_email is defined else 'MISSING' }}
+      - guid: {{ 'defined' if guid is defined else 'MISSING' }}
+
+- name: Starting IBM RHAII Service deployment
+  ansible.builtin.debug:
+    msg: >-
+      Deploying IBM RHAII Service: {{ ibmcloud_rhaii_instance_service }}
+      in us-east (GUID: {{ guid }}, Resource Group: {{ ibmcloud_resource_group_name }})
+      [Note: RHAII requires us-east regardless of general region setting]
+
+- name: Generate Terraform configuration
+  ansible.builtin.template:
+    src: rhaii-as-a-service.j2
+    dest: "{{ output_dir }}/main.tf"
+    mode: "0644"
+
+- name: Get timestamp for log files
+  ansible.builtin.command: date +%s
+  register: timestamp_result
+  changed_when: false
+
+- name: Set timestamp for log files
+  ansible.builtin.set_fact:
+    terraform_log_timestamp: "{{ timestamp_result.stdout }}"
+
+- name: Execute Terraform deployment with error handling
+  block:
+    - name: Execute Terraform deployment
+      community.general.terraform:
+        project_path: "{{ output_dir }}"
+        state: "{{ ibm_terraform_state | default('present') }}"
+        force_init: true
+        variables:
+          ibmcloud_api_key: "{{ ibmcloud_api_key }}"
+          ibmcloud_resource_group_name: "{{ ibmcloud_resource_group_name }}"
+          guid: "{{ guid }}"
+        backend_config:
+          path: "{{ output_dir }}/terraform.tfstate"
+      environment:
+        PATH: "{{ user_path }}"
+        TF_LOG: "DEBUG"
+        TF_LOG_PATH: "{{ output_dir }}/terraform_deploy_{{ terraform_log_timestamp }}.log"
+      register: r_terraform_output
+
+    - name: IBM RHAII Service deployment completed
+      ansible.builtin.debug:
+        msg: "IBM RHAII Service deployed successfully (GUID: {{ guid }}, Region: us-east)"
+
+  rescue:
+    - name: Check for specific error types
+      ansible.builtin.set_fact:
+        has_name_conflict: "{{ 'must be unique' in (r_terraform_output.stderr | default('')) }}"
+        has_resource_exists: "{{ 'already exists' in (r_terraform_output.stderr | default('')) }}"
+        has_missing_resource_group: "{{ 'ResourceGroupIDOrNameCouldNotBeFound' in (r_terraform_output.stderr | default('')) or 'resource group' in (r_terraform_output.stderr | default('')) and 'not found' in (r_terraform_output.stderr | default('')) }}"
+        error_details: "{{ r_terraform_output.stderr | default(r_terraform_output.msg | default('Unknown error')) }}"
+
+    - name: Handle resource naming conflicts
+      when: has_name_conflict | bool
+      ansible.builtin.debug:
+        msg: "Resource naming conflict detected for GUID: {{ guid }}. Use a different GUID or run with ACTION=destroy first."
+
+    - name: Handle missing resource group
+      when: has_missing_resource_group | bool
+      ansible.builtin.debug:
+        msg: >-
+          Resource group '{{ ibmcloud_resource_group_name }}' could not be found or is not
+          accessible with the provided ibmcloud_api_key. Verify the resource group name and
+          that the API key has access to it.
+
+    - name: Handle general deployment failure
+      when: not (has_name_conflict | bool) and not (has_missing_resource_group | bool)
+      ansible.builtin.debug:
+        msg: "IBM RHAII Service deployment failed in us-east. Check terraform logs at {{ output_dir }}/terraform_deploy_{{ terraform_log_timestamp }}.log"
+
+    - name: Fail with structured error message
+      ansible.builtin.fail:
+        msg: >-
+          IBM RHAII Service deployment failed.
+          {{ 'Resource naming conflict' if has_name_conflict
+             else ('Resource group not found/accessible' if has_missing_resource_group
+             else 'Deployment failure') }}. Logs: {{ output_dir }}/terraform_deploy_{{ terraform_log_timestamp }}.log
+
+- name: Record project id
+  agnosticd.core.agnosticd_user_info:
+    data:
+      ibmcloud_rhaii_project_id: "{{ r_terraform_output.outputs.rhaii_instance_guid.value }}"
+
+- name: Set facts with deployment outputs for downstream consumption
+  ansible.builtin.set_fact:
+    ibmcloud_rhaii_project_id: "{{ r_terraform_output.outputs.rhaii_instance_guid.value }}"

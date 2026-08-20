@@ -1,10 +1,9 @@
 ---
 galaxy_info:
-  role_name: ibm_instructlab_service
+  role_name: terraform_setup
   author:
-    - Patrick Rutledge
-    - Tony Kay
-  description: Deploy IBM InstructLab service with associated IBM Cloud resources using Terraform
+    - James Harmison
+  description: Configure Terraform to support IBM workloads (primarily managed via terraform)
   company: Red Hat
 
   issue_tracker_url: https://github.com/rhpds/ibm_workloads/issues
@@ -31,9 +30,6 @@ galaxy_info:
   galaxy_tags:
     - ibm
     - cloud
-    - instructlab
-    - ai
     - terraform
-    - automation
 
 dependencies: []

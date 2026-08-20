@@ -1,0 +1,208 @@
+terraform {
+  required_providers {
+    ibm = {
+      source  = "IBM-Cloud/ibm"
+      version = "~> {{ ibmcloud_provider_version }}"
+    }
+  }
+}
+
+provider "ibm" {
+  ibmcloud_api_key = var.ibmcloud_api_key
+  region           = var.ibm_region_location
+}
+
+variable "ibmcloud_api_key" {
+  description = "IBM Cloud API Key. Must already have access to the target resource group."
+  type        = string
+  sensitive   = true
+}
+
+variable "ibmcloud_resource_group_name" {
+  description = "Name of the existing IBM Cloud resource group to deploy resources into. The ibmcloud_api_key must already have access to this resource group."
+  type        = string
+}
+
+variable "ibm_region_location" {
+  description = "IBM Cloud region"
+  type        = string
+  default     = "us-east"
+}
+
+variable "requester_email" {
+  description = "Email for SAML authentication"
+  type        = string
+  default     = "{{ requester_email | default('user@example.com') }}"
+}
+
+variable "ibm_realm_name" {
+  description = "SAML realm name"
+  type        = string
+  default     = "{{ ibm_realm_name | default('unused') }}"
+}
+
+variable "guid" {
+  description = "Unique deployment identifier"
+  type        = string
+  default     = "{{ guid }}"
+}
+
+data "ibm_resource_group" "rhaii_resource_group" {
+  name = var.ibmcloud_resource_group_name
+}
+
+# Local values for naming consistency
+locals {
+  name_prefix     = "{{ ibmcloud_terraform_name_prefix }}"
+
+  # Use GUID for resource naming
+  deployment_id   = var.guid
+
+  # Service configuration
+  rhaii_service = "{{ ibmcloud_rhaii_instance_service }}"
+  rhaii_plan    = "{{ ibmcloud_rhaii_instance_plan }}"
+
+  # Resource names built from other locsl
+  rhaii_instance_name = "${local.name_prefix}-${local.deployment_id}-rhaii"
+  trusted_profile_name = "${local.name_prefix}-${local.deployment_id}-tp"
+
+  # Recover ID for easier usage
+  resource_group_id = data.ibm_resource_group.rhaii_resource_group.id
+
+  # Common tags
+  tags = [
+    "agnosticd",
+    "rhaii",
+    "guid:${var.guid}",
+    "deployment_id:${local.deployment_id}",
+    "managed_by:terraform"
+  ]
+}
+
+resource "ibm_resource_instance" "rhaii_instance" {
+  name              = local.rhaii_instance_name
+  service           = local.rhaii_service
+  plan              = local.rhaii_plan
+  location          = var.ibm_region_location
+  resource_group_id = local.resource_group_id
+  tags              = local.tags
+
+  timeouts {
+    create = "15m"
+    update = "15m"
+    delete = "15m"
+  }
+}
+
+resource "ibm_iam_trusted_profile" "rhaii_trusted_profile" {
+  name        = local.trusted_profile_name
+  description = "IBM Cloud Trusted Profile for RHAII Service - ${var.guid}"
+
+  lifecycle {
+    prevent_destroy = false
+    ignore_changes = [description]
+  }
+}
+
+{% if ibm_realm_name is defined %}
+resource "ibm_iam_trusted_profile_claim_rule" "rhaii_saml_rule" {
+  profile_id = ibm_iam_trusted_profile.rhaii_trusted_profile.id
+  type       = "Profile-SAML"
+  name       = "SAML Rule for ${var.requester_email}"
+  realm_name = var.ibm_realm_name
+  expiration = 10800  # 3 hours
+
+  conditions {
+    claim    = "email"
+    operator = "EQUALS"
+    value    = "\"${var.requester_email}\""
+  }
+}
+
+resource "ibm_iam_trusted_profile_policy" "rhaii_resource_group_policy" {
+  profile_id = ibm_iam_trusted_profile.rhaii_trusted_profile.id
+  roles      = ["Writer", "Viewer", "Manager"]
+
+  resources {
+    resource_type = "resource-group"
+    resource      = local.resource_group_id
+  }
+}
+
+resource "ibm_iam_trusted_profile_policy" "rhaii_service_rg_policy" {
+  profile_id = ibm_iam_trusted_profile.rhaii_trusted_profile.id
+  roles      = ["Manager", "Operator"]
+
+  resources {
+    service           = local.rhaii_service
+    resource_group_id = local.resource_group_id
+  }
+
+  depends_on = [ibm_resource_group.rhaii_resource_group]
+}
+
+resource "ibm_iam_trusted_profile_policy" "rhaii_service_instance_policy" {
+  profile_id = ibm_iam_trusted_profile.rhaii_trusted_profile.id
+  roles      = ["Manager", "Viewer"]
+
+  resources {
+    service              = local.rhaii_service
+    resource_instance_id = ibm_resource_instance.rhaii_instance.id
+  }
+
+  depends_on = [ibm_resource_instance.rhaii_instance]
+}
+{% endif %}
+
+output "resource_group_id" {
+  description = "ID of the existing resource group used for the deployment"
+  value       = local.resource_group_id
+}
+
+output "resource_group_name" {
+  description = "Name of the existing resource group used for the deployment"
+  value       = data.ibm_resource_group.rhaii_resource_group.name
+}
+
+output "rhaii_instance_id" {
+  description = "ID of the RHAII service instance"
+  value       = ibm_resource_instance.rhaii_instance.id
+}
+
+output "rhaii_instance_guid" {
+  description = "GUID of the RHAII service instance"
+  value       = ibm_resource_instance.rhaii_instance.guid
+}
+
+output "rhaii_instance_name" {
+  description = "Name of the RHAII service instance"
+  value       = ibm_resource_instance.rhaii_instance.name
+}
+
+output "trusted_profile_id" {
+  description = "ID of the created trusted profile"
+  value       = {{ "ibm_iam_trusted_profile.rhaii_trusted_profile.id" if ibm_realm_name is defined else '"unset"' }}
+}
+
+output "trusted_profile_name" {
+  description = "Name of the created trusted profile"
+  value       = {{ "ibm_iam_trusted_profile.rhaii_trusted_profile.name" if ibm_realm_name is defined else '"unset"' }}
+}
+
+output "rhaii_direct_url" {
+  description = "Direct URL to access the RHAII project (bypasses service listing for security)"
+  value       = {{ '"https://cloud.ibm.com${ibm_resource_instance.rhaii_instance.dashboard_url}"' if ibm_realm_name is defined else '"unset"' }}
+}
+
+output "deployment_summary" {
+  description = "Summary of deployed resources"
+  value = {
+    region              = var.ibm_region_location
+    guid                = var.guid
+    resource_group      = data.ibm_resource_group.rhaii_resource_group.name
+    trusted_profile     = ibm_iam_trusted_profile.rhaii_trusted_profile.name
+    rhaii_service = ibm_resource_instance.rhaii_instance.name
+    service_type        = local.rhaii_service
+    service_plan        = local.rhaii_plan
+  }
+}
