@@ -200,8 +200,10 @@ output "deployment_summary" {
     region              = var.ibm_region_location
     guid                = var.guid
     resource_group      = data.ibm_resource_group.rhaii_resource_group.name
+{% if ibm_realm_name is defined %}
     trusted_profile     = ibm_iam_trusted_profile.rhaii_trusted_profile.name
-    rhaii_service = ibm_resource_instance.rhaii_instance.name
+{% endif %}
+    rhaii_service       = ibm_resource_instance.rhaii_instance.name
     service_type        = local.rhaii_service
     service_plan        = local.rhaii_plan
   }

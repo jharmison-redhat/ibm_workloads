@@ -100,7 +100,9 @@
   agnosticd.core.agnosticd_user_info:
     data:
       ibmcloud_rhaii_project_id: "{{ r_terraform_output.outputs.rhaii_instance_guid.value }}"
+      rhaii_direct_url: "{{ r_terraform_output.outputs.rhaii_direct_url if r_terraform_output.outputs.rhaii_direct_url != 'unset' else omit }}"
 
 - name: Set facts with deployment outputs for downstream consumption
   ansible.builtin.set_fact:
     ibmcloud_rhaii_project_id: "{{ r_terraform_output.outputs.rhaii_instance_guid.value }}"
+    rhaii_direct_url: "{{ r_terraform_output.outputs.rhaii_direct_url if r_terraform_output.outputs.rhaii_direct_url != 'unset' else omit }}"
