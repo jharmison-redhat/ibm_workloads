@@ -9,3 +9,6 @@ ibmcloud_terraform_name_prefix: "rhaii"
 # RHAII Service Configuration
 ibmcloud_rhaii_instance_service: "instructlab"
 ibmcloud_rhaii_instance_plan: "instructlab-pricing-plan"
+
+# Trusted Profile configuration
+ibmcloud_configure_trusted_profile: false

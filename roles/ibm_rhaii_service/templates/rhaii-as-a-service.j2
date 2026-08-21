@@ -35,7 +35,7 @@ variable "requester_email" {
   default     = "{{ requester_email }}"
 }
 
-{% if ibm_realm_name is defined %}
+{% if ibm_realm_name is defined and ibmcloud_configure_trusted_profile %}
 variable "ibm_realm_name" {
   description = "SAML realm name"
   type        = string
@@ -102,7 +102,7 @@ resource "ibm_iam_trusted_profile" "rhaii_trusted_profile" {
   }
 }
 
-{% if ibm_realm_name is defined %}
+{% if ibm_realm_name is defined and ibmcloud_configure_trusted_profile %}
 resource "ibm_iam_trusted_profile_claim_rule" "rhaii_saml_rule" {
   profile_id = ibm_iam_trusted_profile.rhaii_trusted_profile.id
   type       = "Profile-SAML"
@@ -177,20 +177,22 @@ output "rhaii_instance_name" {
   value       = ibm_resource_instance.rhaii_instance.name
 }
 
+{% if ibm_realm_name is defined and ibmcloud_configure_trusted_profile %}
 output "trusted_profile_id" {
   description = "ID of the created trusted profile"
-  value       = {{ "ibm_iam_trusted_profile.rhaii_trusted_profile.id" if ibm_realm_name is defined else '"unset"' }}
+  value       = ibm_iam_trusted_profile.rhaii_trusted_profile.id
 }
 
 output "trusted_profile_name" {
   description = "Name of the created trusted profile"
-  value       = {{ "ibm_iam_trusted_profile.rhaii_trusted_profile.name" if ibm_realm_name is defined else '"unset"' }}
+  value       = ibm_iam_trusted_profile.rhaii_trusted_profile.name
 }
 
 output "rhaii_direct_url" {
   description = "Direct URL to access the RHAII project (bypasses service listing for security)"
-  value       = {{ '"https://cloud.ibm.com${ibm_resource_instance.rhaii_instance.dashboard_url}"' if ibm_realm_name is defined else '"unset"' }}
+  value       = "https://cloud.ibm.com${ibm_resource_instance.rhaii_instance.dashboard_url}"
 }
+{% endif %}
 
 output "deployment_summary" {
   description = "Summary of deployed resources"
@@ -198,7 +200,7 @@ output "deployment_summary" {
     region              = var.ibm_region_location
     guid                = var.guid
     resource_group      = data.ibm_resource_group.rhaii_resource_group.name
-{% if ibm_realm_name is defined %}
+{% if ibm_realm_name is defined and ibmcloud_configure_trusted_profile %}
     trusted_profile     = ibm_iam_trusted_profile.rhaii_trusted_profile.name
 {% endif %}
     rhaii_service       = ibm_resource_instance.rhaii_instance.name

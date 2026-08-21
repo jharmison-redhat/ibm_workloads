@@ -49,14 +49,15 @@ This role uses a pre-provisioned **IBM Cloud API key + existing resource group**
 
 ### Optional Variables (defaults/main.yml)
 
-| Variable                          | Default                    | Description                                                                                         |
-| --------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------- |
-| `ibmcloud_provider_version`       | `1.80.4`                   | IBM Cloud Terraform provider version                                                                |
-| `ibmcloud_terraform_name_prefix`  | `rhaii`                    | Prefix for resource names                                                                           |
-| `ibmcloud_rhaii_instance_service` | `instructlab`              | RHAII service name                                                                                  |
-| `ibmcloud_rhaii_instance_plan`    | `instructlab-pricing-plan` | Service plan for RHAII                                                                              |
-| `requester_email`                 | `user@example.com`         | The Kerberos email address of the requester, required if SAML is configured with a realm name below |
-| `ibm_realm_name`                  | (unset)                    | SAML Realm name to support web login                                                                |
+| Variable                             | Default                    | Description                                                                                                  |
+| ------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `ibmcloud_provider_version`          | `1.80.4`                   | IBM Cloud Terraform provider version                                                                         |
+| `ibmcloud_terraform_name_prefix`     | `rhaii`                    | Prefix for resource names                                                                                    |
+| `ibmcloud_rhaii_instance_service`    | `instructlab`              | RHAII service name                                                                                           |
+| `ibmcloud_rhaii_instance_plan`       | `instructlab-pricing-plan` | Service plan for RHAII                                                                                       |
+| `ibmcloud_configure_trusted_profile` | `false`                    | Configure a Trusted Profile in IBM cloud, using the API key, to enable the user to log in to the web console |
+| `requester_email`                    | `user@example.com`         | The Kerberos email address of the requester, required if trusted profile is configured                       |
+| `ibm_realm_name`                     | (unset)                    | SAML Realm name to support web login, required if configuring trusted profile                                |
 
 ## Resource Naming
 
