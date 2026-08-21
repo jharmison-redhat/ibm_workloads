@@ -92,6 +92,7 @@ resource "ibm_resource_instance" "rhaii_instance" {
   }
 }
 
+{% if ibm_realm_name is defined and ibmcloud_configure_trusted_profile %}
 resource "ibm_iam_trusted_profile" "rhaii_trusted_profile" {
   name        = local.trusted_profile_name
   description = "IBM Cloud Trusted Profile for RHAII Service - ${var.guid}"
@@ -102,7 +103,6 @@ resource "ibm_iam_trusted_profile" "rhaii_trusted_profile" {
   }
 }
 
-{% if ibm_realm_name is defined and ibmcloud_configure_trusted_profile %}
 resource "ibm_iam_trusted_profile_claim_rule" "rhaii_saml_rule" {
   profile_id = ibm_iam_trusted_profile.rhaii_trusted_profile.id
   type       = "Profile-SAML"
