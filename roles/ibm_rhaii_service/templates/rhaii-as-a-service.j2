@@ -32,14 +32,16 @@ variable "ibm_region_location" {
 variable "requester_email" {
   description = "Email for SAML authentication"
   type        = string
-  default     = "{{ requester_email | default('user@example.com') }}"
+  default     = "{{ requester_email }}"
 }
 
+{% if ibm_realm_name is defined %}
 variable "ibm_realm_name" {
   description = "SAML realm name"
   type        = string
-  default     = "{{ ibm_realm_name | default('unused') }}"
+  default     = "{{ ibm_realm_name }}"
 }
+{% endif %}
 
 variable "guid" {
   description = "Unique deployment identifier"
@@ -55,16 +57,13 @@ data "ibm_resource_group" "rhaii_resource_group" {
 locals {
   name_prefix     = "{{ ibmcloud_terraform_name_prefix }}"
 
-  # Use GUID for resource naming
-  deployment_id   = var.guid
-
   # Service configuration
   rhaii_service = "{{ ibmcloud_rhaii_instance_service }}"
   rhaii_plan    = "{{ ibmcloud_rhaii_instance_plan }}"
 
   # Resource names built from other locsl
-  rhaii_instance_name = "${local.name_prefix}-${local.deployment_id}-rhaii"
-  trusted_profile_name = "${local.name_prefix}-${local.deployment_id}-tp"
+  rhaii_instance_name = "${local.name_prefix}-${var.guid}-rhaii"
+  trusted_profile_name = "${local.name_prefix}-${var.guid}-tp"
 
   # Recover ID for easier usage
   resource_group_id = data.ibm_resource_group.rhaii_resource_group.id
@@ -74,7 +73,6 @@ locals {
     "agnosticd",
     "rhaii",
     "guid:${var.guid}",
-    "deployment_id:${local.deployment_id}",
     "managed_by:terraform"
   ]
 }

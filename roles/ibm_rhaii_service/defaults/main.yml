@@ -1,4 +1,6 @@
 ---
+requester_email: user@example.com
+
 # Terraform Configuration
 ibmcloud_terraform_dir: "{{ output_dir }}"
 ibmcloud_provider_version: "1.80.4"
